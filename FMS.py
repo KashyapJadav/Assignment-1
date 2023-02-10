@@ -1,44 +1,66 @@
+"""Problem statement: File Monitoring system
+The goal of this task is to design and develop a file monitoring system.
+Generate a random writer that writes pseudo strings
+(with at least 50% probability of generating the “MARUTI” keyword. Note that we are strictly looking at the "MARUTI" keyword only as a
+single value not the MARUTI keyword inside a random string)
+into two separate files at regular interval of time.
+It should have the capability to monitor both the files and count the total number of occurrences
+for the “MARUTI” keyword by each file and write output to the "counts.log" file.
+"""
+
 import random
 import asyncio
+import aiofiles
 import logging
 import string
 
 logging.basicConfig(filename="newfile.log", format='%(asctime)s - %(message)s',
                     filemode='a', level=logging.DEBUG)
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
-# Define Function using asyncio
-async def main(str1):
-    c1 = 0
+#Made class for FileMonitoringSystem
+class FileMonitoringSystem:
+    def __init__(self,filename):
+        self.filename = filename
+
+    #Random String Generator function
+    async def string_generator(self):
+        k = random.randint(10,20)
+        ran_str = ''.join(random.choices(string.ascii_letters, k=k))
+        lst = [ran_str,"MARUTI"]
+        return random.choice(lst)
+
+    #Generated string write into a files
+    async def file_writer(self):
+        while True:
+            try:
+                s = await self.string_generator()
+                async with aiofiles.open(self.filename,'a') as file:
+                    await file.write(s)
+            except KeyboardInterrupt as e:
+                logger.error(f"Error in file {self.filename}:{e}")
+                break
+
+#Word count function from files
+async def word_counter(files):
     while True:
-        for i in range(10):
-            ran_ascii_letter = ''.join(random.choices(string.ascii_letters, k=4))
-            res1 = random.choice([str1, ran_ascii_letter])
-            res2 = random.choice([str1, ran_ascii_letter])
-            print("Generated string:" + str(res1))
-            print("Generated string:" + str(res2))
+        for file in files:
+            try:
+                async with aiofiles.open(file,'r') as f:
+                    c = await f.read()
+                    count = c.count("MARUTI")
+                    logger.info(f"Total count in file {file}:{count}")
+            except Exception as e:
+                logger.error(f"Error in file {file}:{e}")
 
-            if res1 == 'MARUTI':
-                c1 += 1
-            with open("file1.txt", "a") as file1:
-                file1.write(res1 + " ")
-            # await asyncio.sleep(1)
-            if res2 == 'MARUTI':
-                c1 += 1
-            with open("file2.txt", "a") as file2:
-                file2.write(res2 + " ")
+#Call a main Drivercode function
+async def DriverCode():
+    d = FileMonitoringSystem("file1.txt")
+    d1 = FileMonitoringSystem("file2.txt")
+    await asyncio.gather(d.file_writer(),d1.file_writer(),word_counter(['file1.txt','file2.txt']))
 
-            with open("file1.txt", "r") as newfile:
-                temp1 = newfile.read()
-                temp3 = temp1.count('MARUTI')
-            with open("file2.txt", "r") as newfile1:
-                temp2 = newfile1.read()
-                temp4 = temp2.count("MARUTI")
-                await asyncio.sleep(1)
-                logger.info(f"Total count in file1 {temp3}")
-                logger.info(f"Total count in file2 {temp4}")
-
-
-# SaveCount()
-asyncio.run(main('MARUTI'))
+try:
+    asyncio.run(DriverCode())
+except Exception as e:
+    logger.error(f"Error in Drivercode {e}")
